@@ -6,7 +6,8 @@ const bodyParser = require('body-parser');
 
 const app = express();
 dotenv.config();
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // กำหนดค่าสำหรับการเชื่อมต่อกับ MySQL
 const db = mysql.createConnection({
@@ -51,8 +52,8 @@ app.get('/', (req, res) => {
 });
 
 
-//api for search
-app.get('/search', (req, res) => {
+//api for search result
+app.get('/result', (req, res) => {
   const { keyword } = req.query;
 
   const query = `
@@ -66,6 +67,56 @@ app.get('/search', (req, res) => {
   `;
 
   db.query(query, [`%${keyword}%`, `%${keyword}%`], (err, result) => {
+    if (err) {
+      console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
+      res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
+    } else {
+      res.json(result);
+    }
+  });
+});
+
+//api for get video by with query id 
+// like http://localost:3000/watch?v=1
+app.get('/watch', (req, res) => {
+  console.log(req.query);
+  const { v } = req.query;
+    // Check if v is defined
+  if (!v) {
+    res.status(400).send('Invalid video parameter');
+    return;
+  }
+
+  const query = `
+    SELECT
+      v.video_id,
+      v.title,
+      v.description,
+      v.duration,
+      v.video_type,
+      v.resolution,
+      v.thumbnail_url,
+      v.video_url,
+      v.created_at,
+      c.name AS channel_name,
+      c.profile_picture_url,
+      p.view_count,
+      p.like_count,
+      (SELECT COUNT(*) FROM channel_subscriptions WHERE channel_id = v.channel_id AND user_id = ?) AS is_subscribed,
+      (
+        SELECT GROUP_CONCAT(CONCAT(u.username, ': ', co.content) ORDER BY co.created_at SEPARATOR '\n')
+        FROM comments co
+        JOIN users u ON co.user_id = u.user_id
+        WHERE co.video_id = v.video_id
+      ) AS comments
+      
+    FROM videos v
+    JOIN channels c ON v.channel_id = c.channel_id
+    JOIN popular p ON v.video_id = p.video_id
+    WHERE v.video_id = ?;
+  `;
+
+  db.query(query, [v, v], (err, result) => {
     if (err) {
       console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
