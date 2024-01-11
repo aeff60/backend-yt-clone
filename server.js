@@ -51,6 +51,32 @@ app.get('/', (req, res) => {
 });
 
 
+//api for search
+app.get('/search', (req, res) => {
+  const { keyword } = req.query;
+
+  const query = `
+    SELECT v.video_id, v.title, v.created_at, v.thumbnail_url,
+           c.name AS channel_name, c.profile_picture_url,
+           p.view_count
+    FROM videos v
+    JOIN channels c ON v.channel_id = c.channel_id
+    JOIN popular p ON v.video_id = p.video_id
+    WHERE v.title LIKE ? OR c.name LIKE ?;
+  `;
+
+  db.query(query, [`%${keyword}%`, `%${keyword}%`], (err, result) => {
+    if (err) {
+      console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
+      res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
+    } else {
+      res.json(result);
+    }
+  });
+});
+
+
+
 // ให้ Express ทำงานบน port ที่กำหนด
 const port = 3000;
 app.listen(port, () => {
