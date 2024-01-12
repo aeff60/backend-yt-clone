@@ -54,7 +54,7 @@ app.get('/', (req, res) => {
 
 //api for search result
 app.get('/result', (req, res) => {
-  const { keyword } = req.query;
+  const { search_query } = req.query;
 
   const query = `
     SELECT v.video_id, v.title, v.created_at, v.thumbnail_url,
@@ -66,7 +66,7 @@ app.get('/result', (req, res) => {
     WHERE v.title LIKE ? OR c.name LIKE ?;
   `;
 
-  db.query(query, [`%${keyword}%`, `%${keyword}%`], (err, result) => {
+  db.query(query, [`%${search_query}%`, `%${search_query}%`], (err, result) => {
     if (err) {
       console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
@@ -121,7 +121,13 @@ app.get('/watch', (req, res) => {
       console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
     } else {
-      res.json(result);
+      const video = result[0];
+      const comments = video.comments.split('\n').map(comment => {
+        const [username, content] = comment.split(': ');
+        return { [username]: { content } };
+      });
+      video.comments = comments;
+      res.json([video]);
     }
   });
 });
