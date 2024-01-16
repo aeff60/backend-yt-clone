@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
+const { swaggerSpec, swaggerUi } = require('./swagger');
 
 const app = express();
 dotenv.config();
@@ -30,6 +31,19 @@ db.connect(err => {
   }
 });
 
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// สร้าง API endpoint สำหรับดึงข้อมูล videos
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Retrieve a list of videos.
+ *     responses:
+ *       '200':
+ *         description: A JSON array of videos.
+ */
 // สร้าง API endpoint สำหรับดึงข้อมูล videos
 app.get('/', (req, res) => {
   const query = `
@@ -52,6 +66,24 @@ app.get('/', (req, res) => {
 });
 
 
+
+//api for search result
+/**
+ * @swagger
+ * /result:
+ *   get:
+ *     summary: Search for videos based on a query.
+ *     parameters:
+ *       - name: search_query
+ *         in: query
+ *         required: true
+ *         description: The search query.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: A JSON array of videos.
+ */
 //api for search result
 app.get('/result', (req, res) => {
   const { search_query } = req.query;
@@ -77,6 +109,23 @@ app.get('/result', (req, res) => {
 });
 
 //api for get video by with query id 
+//api for get video by with query id
+/**
+ * @swagger
+ * /watch:
+ *   get:
+ *     summary: Retrieve details of a specific video.
+ *     parameters:
+ *       - name: v
+ *         in: query
+ *         required: true
+ *         description: The video ID.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: A JSON array containing details of the video.
+ */
 // like http://localost:3000/watch?v=1
 app.get('/watch', (req, res) => {
   console.log(req.query);
@@ -131,8 +180,6 @@ app.get('/watch', (req, res) => {
     }
   });
 });
-
-
 
 // ให้ Express ทำงานบน port ที่กำหนด
 const port = 3000;
