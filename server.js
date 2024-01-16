@@ -12,11 +12,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // กำหนดค่าสำหรับการเชื่อมต่อกับ MySQL
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'passw@rd4demo',
-  database: 'youtubedb',
-  port: 3306,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  port: process.env.DB_PORT,
 });
 
 // เปิดให้ Express ใช้งาน CORS
@@ -177,6 +177,102 @@ app.get('/watch', (req, res) => {
       });
       video.comments = comments;
       res.json([video]);
+    }
+  });
+});
+
+// like http://localost:3000/user?user_id=1
+
+/**
+ *  @swagger
+ * /user:
+ *  get:
+ *    summary: Retrieve details of a specific user.
+ *    parameters:
+ *      - name: user_id
+ *        in: query
+ *        required: true
+ *        description: The user ID.
+ *        schema:
+ *          type: string
+ *    responses:
+ *      '200':
+ *        description: A JSON array containing details of the user.
+ */
+  
+
+app.get('/user', (req, res) => {
+  const { user_id } = req.query;
+  // Check if user_id is defined
+  if (!user_id) {
+    res.status(400).send('Invalid user_id parameter');
+    return;
+  }
+
+  const query = `
+    SELECT
+      u.username,
+      u.profile_picture_url,
+      (SELECT COUNT(*) FROM channel_subscriptions WHERE channel_id = c_sub.channel_id AND user_id = ?) AS is_subscribed,
+      (SELECT COUNT(*) FROM channel_subscriptions WHERE channel_id = c_sub.channel_id) AS subscriber_count
+    FROM channel_subscriptions c_sub
+    JOIN users u ON c_sub.user_id = u.user_id
+    WHERE c_sub.user_id = ?;
+  `;
+
+  db.query(query, [user_id, user_id], (err, result) => {
+    if (err) {
+      console.error('เกิดข้อผิดพลาดในการค้นหา:', err);
+      res.status(500).send('เกิดข้อผิดพลาดในการค้นหา');
+    } else {
+      res.json(result);
+    }
+  });
+});
+
+//api for post user info to database
+/**
+ * @swagger
+ * /user:
+ *   post:
+ *     summary: Create a new user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *              username:
+ *                type: string
+ *              password:
+ *                type: string
+ *              profile_picture_url:
+ *                type: string
+ *     responses:
+ *       '200':
+ *         description: A JSON array of users.
+ */
+//api for post user info to database
+app.post('/user', (req, res) => {
+  const { username, password, email, first_name, last_name, profile_picture_url } = req.body;
+
+  if (!username) {
+    res.status(400).send('Username is required');
+    return;
+  }
+
+  const query = `
+    INSERT INTO users (username, password, email, first_name, last_name, created_at, updated_at, profile_picture_url)
+    VALUES (?, ?, ?, ?, ?, NOW(), NOW(), ?);
+  `;
+
+  db.query(query, [username, password, email, first_name, last_name, profile_picture_url], (err, result) => {
+    if (err) {
+      console.error('เกิดข้อผิดพลาดในการสร้างผู้ใช้:', err);
+      res.status(500).send('เกิดข้อผิดพลาดในการสร้างผู้ใช้');
+    } else {
+      res.send('สร้างผู้ใช้เรียบร้อยแล้ว');
     }
   });
 });

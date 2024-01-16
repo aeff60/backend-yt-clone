@@ -5,9 +5,9 @@ const options = {
     swaggerDefinition: {
         openapi: '3.0.0',
         info: {
-            title: 'Your API Title',
+            title: 'Youtube Clone API',
             version: '1.0.0',
-            description: 'Your API description',
+            description: 'API ตัวอย่างสำหรับ Youtube Clone ',
         },
         servers: [
             {
